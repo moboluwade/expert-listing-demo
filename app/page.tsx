@@ -1,6 +1,7 @@
-
 export default function Home() {
   return (
-    <div></div>
+    <main>
+      <h1>Place search</h1>
+    </main>
   );
 }
