@@ -61,6 +61,18 @@ describe("PlaceSearch", () => {
     expect(input).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("shows a place's population when it's known", async () => {
+    fetchMock.mockResolvedValue(
+      placesResponse([makePlace(5, "Lagos", { population: 15_388_000 })]),
+    );
+    const user = userEvent.setup();
+    render(<PlaceSearch />);
+
+    await user.type(screen.getByRole("combobox"), "lagos");
+
+    expect(await screen.findByRole("option")).toHaveTextContent("15.4M people");
+  });
+
   it("closes on the first Escape and clears on the second", async () => {
     fetchMock.mockResolvedValue(placesResponse(PLACES));
     const user = userEvent.setup();
@@ -100,5 +112,31 @@ describe("PlaceSearch", () => {
 
     expect(await screen.findByRole("option", { name: /Abuja/ })).toBeVisible();
     expect(screen.queryByText("Couldn't load places.")).not.toBeInTheDocument();
+  });
+
+  it("searches for an example when its chip is clicked", async () => {
+    fetchMock.mockResolvedValue(placesResponse([makePlace(4, "Ikeja")]));
+    const user = userEvent.setup();
+    render(<PlaceSearch examples={["Lagos", "Ikeja"]} />);
+
+    await user.click(screen.getByRole("button", { name: "Ikeja" }));
+
+    expect(screen.getByRole("combobox")).toHaveValue("Ikeja");
+    expect(screen.getByRole("combobox")).toHaveFocus();
+    expect(await screen.findByRole("option", { name: /Ikeja/ })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Lagos" })).toBeNull();
+  });
+
+  it("clears the input and keeps focus there", async () => {
+    fetchMock.mockResolvedValue(placesResponse(PLACES));
+    const user = userEvent.setup();
+    render(<PlaceSearch />);
+    const input = screen.getByRole("combobox");
+    await user.type(input, "ab");
+
+    await user.click(screen.getByRole("button", { name: "Clear search" }));
+
+    expect(input).toHaveValue("");
+    expect(input).toHaveFocus();
   });
 });
