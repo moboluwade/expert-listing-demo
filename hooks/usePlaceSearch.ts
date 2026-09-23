@@ -70,5 +70,17 @@ export function usePlaceSearch(query: string): SearchResult {
   if (!isSearchable) return { status: "idle", places: NO_PLACES, retry };
   if (cached) return { status: "success", places: cached, retry };
   if (failedKey === key) return { status: "error", places: NO_PLACES, retry };
-  return { status: "loading", places: NO_PLACES, retry };
+  return { status: "loading", places: findPrefixResults(results, key), retry };
+}
+
+// While "lago" loads, the results for "lag" are a reasonable placeholder and
+// stop the list flashing empty on every keystroke.
+function findPrefixResults(results: Map<string, Place[]>, key: string) {
+  let best = "";
+  for (const cachedKey of results.keys()) {
+    if (key.startsWith(cachedKey) && cachedKey.length > best.length) {
+      best = cachedKey;
+    }
+  }
+  return results.get(best) ?? NO_PLACES;
 }

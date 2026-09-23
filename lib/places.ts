@@ -31,13 +31,26 @@ export function normalizeQuery(query: string) {
 }
 
 export function toPlaces(data: OpenMeteoResponse): Place[] {
-  return (data.results ?? []).map((result) => ({
-    id: result.id,
-    name: result.name,
-    region: result.admin1 ?? null,
-    country: result.country ?? "",
-    countryCode: result.country_code ?? "",
-    latitude: result.latitude,
-    longitude: result.longitude,
-  }));
+  const seen = new Set<string>();
+  const places: Place[] = [];
+
+  for (const result of data.results ?? []) {
+    // GeoNames has separate entries for villages that share a name and region,
+    // which would render as identical rows.
+    const label = `${result.name}|${result.admin1}|${result.country}`;
+    if (seen.has(label)) continue;
+    seen.add(label);
+
+    places.push({
+      id: result.id,
+      name: result.name,
+      region: result.admin1 ?? null,
+      country: result.country ?? "",
+      countryCode: result.country_code ?? "",
+      latitude: result.latitude,
+      longitude: result.longitude,
+    });
+  }
+
+  return places;
 }
