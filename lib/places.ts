@@ -9,6 +9,7 @@ export type Place = {
   countryCode: string;
   latitude: number;
   longitude: number;
+  population: number | null;
 };
 
 export type PlacesResponse = { places: Place[] };
@@ -21,6 +22,7 @@ type OpenMeteoResult = {
   country?: string;
   country_code?: string;
   admin1?: string;
+  population?: number;
 };
 
 // Open-Meteo omits `results` entirely when nothing matches.
@@ -31,17 +33,8 @@ export function normalizeQuery(query: string) {
 }
 
 export function toPlaces(data: OpenMeteoResponse): Place[] {
-  const seen = new Set<string>();
-  const places: Place[] = [];
-
-  for (const result of data.results ?? []) {
-    // GeoNames has separate entries for villages that share a name and region,
-    // which would render as identical rows.
-    const label = `${result.name}|${result.admin1}|${result.country}`;
-    if (seen.has(label)) continue;
-    seen.add(label);
-
-    places.push({
+  return uniqueByLabel(
+    (data.results ?? []).map((result) => ({
       id: result.id,
       name: result.name,
       region: result.admin1 ?? null,
@@ -49,8 +42,46 @@ export function toPlaces(data: OpenMeteoResponse): Place[] {
       countryCode: result.country_code ?? "",
       latitude: result.latitude,
       longitude: result.longitude,
-    });
-  }
+      population: result.population ?? null,
+    })),
+  );
+}
 
-  return places;
+// Worth two orders of magnitude of population: a Nigerian town of 250K ranks
+// level with a foreign city of 25M.
+const PREFERRED_COUNTRY_BOOST = 2;
+
+export function rankPlaces(
+  places: Place[],
+  { preferredCountry, limit }: { preferredCountry: string; limit: number },
+): Place[] {
+  const score = (place: Place) =>
+    Math.log10((place.population ?? 0) + 1) +
+    (place.countryCode === preferredCountry ? PREFERRED_COUNTRY_BOOST : 0);
+
+  // sort() is stable, so equal scores keep Open-Meteo's relevance order.
+  return uniqueByLabel(places)
+    .sort((a, b) => score(b) - score(a))
+    .slice(0, limit);
+}
+
+const compactNumber = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+export function formatPopulation(population: number | null) {
+  return population ? compactNumber.format(population) : null;
+}
+
+function uniqueByLabel(places: Place[]) {
+  const seen = new Set<string>();
+  return places.filter((place) => {
+    // GeoNames has separate entries for villages that share a name and region,
+    // which would render as identical rows.
+    const label = `${place.name}|${place.region}|${place.country}`;
+    if (seen.has(label)) return false;
+    seen.add(label);
+    return true;
+  });
 }

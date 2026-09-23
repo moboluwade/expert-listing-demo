@@ -1,6 +1,10 @@
 import type { Place } from "@/lib/places";
 
-export function makePlace(id: number, name: string): Place {
+export function makePlace(
+  id: number,
+  name: string,
+  overrides: Partial<Place> = {},
+): Place {
   return {
     id,
     name,
@@ -9,6 +13,8 @@ export function makePlace(id: number, name: string): Place {
     countryCode: "NG",
     latitude: 6.45,
     longitude: 3.39,
+    population: null,
+    ...overrides,
   };
 }
 
