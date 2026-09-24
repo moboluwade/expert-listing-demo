@@ -57,20 +57,3 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
-
-.link {
-  display: inline-block;
-  margin-top: 20px;
-  padding: 8px 16px;
-  border: 1px solid var(--brand);
-  border-radius: 999px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--brand);
-  text-decoration: none;
-}
-
-.link:hover {
-  background: var(--brand);
-  color: #fff;
-}

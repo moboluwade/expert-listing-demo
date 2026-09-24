@@ -12,7 +12,6 @@ export function PlaceCard({ place }: { place: Place }) {
     lat + MAP_SPAN_DEGREES,
   ].join(",");
   const embedUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
-  const fullMapUrl = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=13/${lat}/${lon}`;
 
   const stats = [
     { label: "Region", value: place.region },
