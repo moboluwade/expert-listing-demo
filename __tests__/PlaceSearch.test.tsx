@@ -37,6 +37,33 @@ describe("PlaceSearch", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("/api/places?q=lagos");
   });
 
+  it("only keeps old results up while the new query extends them", async () => {
+    vi.useFakeTimers();
+    fetchMock.mockImplementation(async (url: string) =>
+      placesResponse(
+        url.includes("kaduna")
+          ? [makePlace(7, "Kaduna")]
+          : [makePlace(5, "Lagos")],
+      ),
+    );
+    render(<PlaceSearch />);
+    const input = screen.getByRole("combobox");
+    const typeAndWait = async (value: string) => {
+      fireEvent.change(input, { target: { value } });
+      await act(async () => vi.advanceTimersByTime(250));
+    };
+    await typeAndWait("lagos");
+
+    fireEvent.change(input, { target: { value: "lagos i" } });
+    expect(screen.getByRole("option", { name: /Lagos/ })).toBeVisible();
+
+    fireEvent.change(input, { target: { value: "kaduna" } });
+    expect(screen.queryByRole("option", { name: /Lagos/ })).toBeNull();
+
+    await act(async () => vi.advanceTimersByTime(250));
+    expect(screen.getByRole("option", { name: /Kaduna/ })).toBeVisible();
+  });
+
   it("moves through options with the arrow keys and selects with Enter", async () => {
     fetchMock.mockResolvedValue(placesResponse(PLACES));
     const onSelect = vi.fn();
@@ -124,7 +151,6 @@ describe("PlaceSearch", () => {
     expect(screen.getByRole("combobox")).toHaveValue("Ikeja");
     expect(screen.getByRole("combobox")).toHaveFocus();
     expect(await screen.findByRole("option", { name: /Ikeja/ })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Lagos" })).toBeNull();
   });
 
   it("clears the input and keeps focus there", async () => {

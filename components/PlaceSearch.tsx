@@ -13,6 +13,7 @@ import { CloseIcon, PinIcon, SearchIcon } from "./icons";
 import styles from "./PlaceSearch.module.css";
 
 const DEBOUNCE_MS = 250;
+const NO_PLACES: Place[] = [];
 
 type PlaceSearchProps = {
   label?: string;
@@ -36,17 +37,25 @@ export function PlaceSearch({
   const [activeId, setActiveId] = useState<number | null>(null);
 
   const debouncedInput = useDebouncedValue(input, DEBOUNCE_MS);
-  const { status, places, retry } = usePlaceSearch(debouncedInput);
+  const result = usePlaceSearch(debouncedInput);
+  const { status, retry } = result;
 
   const isSearchable = input.trim().length >= MIN_QUERY_LENGTH;
   const isDebouncing = normalizeQuery(input) !== normalizeQuery(debouncedInput);
+  // Results for "lag" are still useful while "lago" is pending, but results
+  // for "lagos" say nothing about "kaduna", so they're hidden until it loads.
+  const isUnrelated =
+    isDebouncing &&
+    !normalizeQuery(input).startsWith(normalizeQuery(debouncedInput));
+  const places = isUnrelated ? NO_PLACES : result.places;
   const isBusy = isSearchable && (isDebouncing || status === "loading");
   const showPopup = isOpen && isSearchable;
   const showList = showPopup && places.length > 0;
   const showEmpty =
     showPopup && !isDebouncing && status === "success" && !places.length;
   const showError = showPopup && !isDebouncing && status === "error";
-  const showSkeleton = showPopup && status === "loading" && !places.length;
+  const showSkeleton =
+    showPopup && !places.length && (isUnrelated || status === "loading");
   const showPanel = showList || showSkeleton || showEmpty || showError;
 
   // Tracking the active option by id rather than index means a new result
